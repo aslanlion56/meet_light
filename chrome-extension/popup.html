@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Meet Light</title>
+    <style>
+      body {
+        width: 280px;
+        margin: 0;
+        padding: 16px;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        color: #1f2937;
+      }
+
+      h1 {
+        margin: 0 0 12px;
+        font-size: 16px;
+      }
+
+      .status-card {
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        padding: 12px;
+        margin-bottom: 12px;
+        background: #f9fafb;
+      }
+
+      .status-row {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 8px;
+        font-size: 13px;
+      }
+
+      .status-row:last-child {
+        margin-bottom: 0;
+      }
+
+      .dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        display: inline-block;
+        margin-right: 6px;
+      }
+
+      .dot.green {
+        background: #22c55e;
+      }
+
+      .dot.yellow {
+        background: #eab308;
+      }
+
+      .dot.red {
+        background: #ef4444;
+      }
+
+      .dot.disconnected {
+        background: #9ca3af;
+      }
+
+      button {
+        width: 100%;
+        padding: 10px 12px;
+        border: none;
+        border-radius: 8px;
+        background: #2563eb;
+        color: white;
+        font-size: 14px;
+        cursor: pointer;
+      }
+
+      button:hover {
+        background: #1d4ed8;
+      }
+
+      button:disabled {
+        background: #93c5fd;
+        cursor: wait;
+      }
+
+      .hint {
+        margin-top: 10px;
+        font-size: 12px;
+        color: #6b7280;
+        line-height: 1.4;
+      }
+
+      .error {
+        margin-top: 10px;
+        padding: 8px;
+        border-radius: 6px;
+        background: #fef2f2;
+        color: #b91c1c;
+        font-size: 12px;
+        line-height: 1.4;
+        display: none;
+      }
+
+      .error.visible {
+        display: block;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Meet Light</h1>
+
+    <div class="status-card">
+      <div class="status-row">
+        <span>Estado</span>
+        <span id="meeting-status">Libre</span>
+      </div>
+      <div class="status-row">
+        <span>Arduino</span>
+        <span id="serial-status">
+          <span class="dot disconnected"></span>Desconectado
+        </span>
+      </div>
+    </div>
+
+    <button id="connect-btn" type="button">Conectar Arduino</button>
+    <p id="error-msg" class="error" role="alert"></p>
+    <p class="hint">
+      Al conectar se abrirá una pestaña para elegir el puerto USB (el popup se cierra solo).
+      Verde = libre, amarillo = Meet/Teams abierto, rojo = en junta.
+    </p>
+
+    <script src="popup.js"></script>
+  </body>
+</html>
