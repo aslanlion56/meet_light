@@ -3,7 +3,7 @@
 Indica con un **LED RGB** tu disponibilidad en Google Meet y Microsoft Teams:
 
 - **Verde** → libre (sin pestañas Meet/Teams abiertas)
-- **Amarillo** → Meet o Teams abierto, reunión aún no iniciada
+- **Azul** → Meet o Teams abierto, reunión aún no iniciada
 - **Rojo** → reunión en curso
 
 ## Componentes
@@ -17,7 +17,7 @@ Indica con un **LED RGB** tu disponibilidad en Google Meet y Microsoft Teams:
 
 - 1× Arduino Uno
 - 1× LED RGB de 4 pines, cátodo común
-- 2× resistencias de 220 Ω (rojo y verde)
+- 3× resistencias de 220 Ω (rojo, verde y azul)
 - 1× protoboard + cables jumper
 - Cable USB
 
@@ -27,20 +27,18 @@ Indica con un **LED RGB** tu disponibilidad en Google Meet y Microsoft Teams:
 |-------------|----------|
 | **11** | Resistencia 220 Ω → patilla **R (rojo)** del LED |
 | **10** | Resistencia 220 Ω → patilla **G (verde)** del LED |
-| **9** | Patilla **B (azul)** — no conectar |
+| **9** | Resistencia 220 Ω → patilla **B (azul)** del LED |
 | **GND** | Patilla **COMÚN** (cátodo) del LED |
-
-El **amarillo** se obtiene encendiendo rojo + verde a la vez (lo hace el firmware).
 
 ## Estados del semáforo
 
 | Estado | Condición | Color LED |
 |--------|-----------|-----------|
 | Libre | Sin pestañas Meet/Teams | Verde |
-| Esperando | Pestaña Meet/Teams abierta, sin reunión activa | Amarillo |
+| Esperando | Pestaña Meet/Teams abierta, sin reunión activa | Azul |
 | En junta | Reunión en curso | Rojo |
 
-Prioridad con varias pestañas: **rojo > amarillo > verde**.
+Prioridad con varias pestañas: **rojo > azul > verde**.
 
 ## Protocolo serial (9600 baud)
 
@@ -49,7 +47,7 @@ Prioridad con varias pestañas: **rojo > amarillo > verde**.
 | Byte | Estado | Color |
 |------|--------|-------|
 | `'0'` | Libre | Verde |
-| `'1'` | Esperando | Amarillo |
+| `'1'` | Esperando | Azul |
 | `'2'` | En junta | Rojo |
 
 ### Prueba manual con Monitor Serial
@@ -64,7 +62,7 @@ Puedes probar el hardware **sin la extensión**:
 | Comando | Color |
 |---------|-------|
 | `verde` | Verde |
-| `amarillo` | Amarillo |
+| `azul` | Azul |
 | `rojo` | Rojo |
 | `apaga` | Apagado |
 
@@ -91,9 +89,9 @@ Funciona en **Mac y Windows** con Google Chrome.
 
 1. Conecta el Arduino y la extensión.
 2. Sin Meet/Teams abierto → **verde**.
-3. Abre una sala sin unirte → **amarillo**.
+3. Abre una sala sin unirte → **azul**.
 4. Únete a la llamada → **rojo**.
-5. Cuelga (pestaña sigue abierta) → **amarillo**.
+5. Cuelga (pestaña sigue abierta) → **azul**.
 6. Cierra la pestaña → **verde**.
 
 ## Solución de problemas
@@ -102,6 +100,6 @@ Funciona en **Mac y Windows** con Google Chrome.
 |----------|-----------|
 | No aparece el puerto serial | Cierra Arduino IDE y Monitor Serial, reconecta USB |
 | LED no cambia con extensión | Pulsa **Conectar Arduino** en el popup |
+| Azul no enciende | Conecta pin 9 con resistencia 220 Ω a la patilla B del LED |
 | Prueba manual no responde | Verifica 9600 baud y salto de línea activado |
-| Colores invertidos | Revisa cableado en pines 11 (rojo) y 10 (verde) |
 | Tras reiniciar Chrome | Vuelve a pulsar **Conectar Arduino** |

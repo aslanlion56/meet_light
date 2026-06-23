@@ -28,6 +28,14 @@ async function writeCommand(status) {
   return true;
 }
 
+async function writeManualCommand(status) {
+  if (!writer) {
+    throw new Error('Arduino no conectado.');
+  }
+
+  await writeCommand(status);
+}
+
 async function sendLedState(status, retries = 3) {
   currentStatus = status;
   if (!writer) return;
@@ -103,6 +111,13 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
 
   if (message.type === 'LED_STATE') {
     sendLedState(message.status)
+      .then(() => sendResponse({ ok: true }))
+      .catch((error) => sendResponse({ ok: false, error: error.message }));
+    return true;
+  }
+
+  if (message.type === 'MANUAL_LED') {
+    writeManualCommand(message.status)
       .then(() => sendResponse({ ok: true }))
       .catch((error) => sendResponse({ ok: false, error: error.message }));
     return true;

@@ -4,6 +4,7 @@ const tabStates = new Map();
 let globalStatus = 'free';
 let activePlatform = null;
 let serialConnected = false;
+let manualOverride = false;
 
 async function ensureOffscreen() {
   const contexts = await chrome.runtime.getContexts({
@@ -83,7 +84,7 @@ async function updateGlobalState(force = false) {
 
   await persistState(globalStatus, activePlatform);
 
-  if (serialConnected) {
+  if (serialConnected && (!manualOverride || force)) {
     await sendLedState(globalStatus);
   }
 }
@@ -132,10 +133,33 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       .set({ serialConnected })
       .then(async () => {
         if (serialConnected) {
+          manualOverride = false;
           await updateGlobalState(true);
         }
         sendResponse({ ok: true });
       });
+    return true;
+  }
+
+  if (message.type === 'MANUAL_LED') {
+    manualOverride = true;
+    ensureOffscreen()
+      .then(() =>
+        sendToOffscreen({
+          type: 'MANUAL_LED',
+          status: message.status
+        })
+      )
+      .then((result) => sendResponse(result))
+      .catch((error) => sendResponse({ ok: false, error: error.message }));
+    return true;
+  }
+
+  if (message.type === 'RESTORE_LED') {
+    manualOverride = false;
+    updateGlobalState(true)
+      .then(() => sendResponse({ ok: true }))
+      .catch((error) => sendResponse({ ok: false, error: error.message }));
     return true;
   }
 
@@ -152,8 +176,10 @@ chrome.runtime.onInstalled.addListener(() => {
   ensureOffscreen();
 });
 
-// Reenvía el estado al Arduino cada 3 s por si se perdió un comando tras el reset.
+// Reenvía el estado al Arduino cada 3 s (solo si no hay prueba manual activa).
 setInterval(async () => {
+  if (manualOverride) return;
+
   const data = await chrome.storage.local.get(['serialConnected', 'status']);
   if (!data.serialConnected || !data.status) return;
 

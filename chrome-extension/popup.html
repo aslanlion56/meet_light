@@ -48,8 +48,8 @@
         background: #22c55e;
       }
 
-      .dot.yellow {
-        background: #eab308;
+      .dot.blue {
+        background: #2563eb;
       }
 
       .dot.red {
@@ -101,6 +101,65 @@
       .error.visible {
         display: block;
       }
+
+      .section-label {
+        margin: 14px 0 8px;
+        font-size: 12px;
+        font-weight: 600;
+        color: #374151;
+      }
+
+      .color-buttons {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 8px;
+        margin-bottom: 8px;
+      }
+
+      .color-buttons button {
+        width: auto;
+        padding: 8px 6px;
+        font-size: 12px;
+      }
+
+      .btn-green {
+        background: #16a34a;
+      }
+
+      .btn-green:hover {
+        background: #15803d;
+      }
+
+      .btn-blue {
+        background: #2563eb;
+      }
+
+      .btn-blue:hover {
+        background: #1d4ed8;
+      }
+
+      .btn-red {
+        background: #dc2626;
+      }
+
+      .btn-red:hover {
+        background: #b91c1c;
+      }
+
+      .btn-restore {
+        background: #4b5563;
+        margin-bottom: 0;
+      }
+
+      .btn-restore:hover {
+        background: #374151;
+      }
+
+      .color-buttons button:disabled,
+      .btn-restore:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
     </style>
   </head>
   <body>
@@ -121,9 +180,18 @@
 
     <button id="connect-btn" type="button">Conectar Arduino</button>
     <p id="error-msg" class="error" role="alert"></p>
+
+    <p class="section-label">Prueba manual del LED</p>
+    <div class="color-buttons">
+      <button id="btn-green" class="btn-green" type="button" disabled>Verde</button>
+      <button id="btn-blue" class="btn-blue" type="button" disabled>Azul</button>
+      <button id="btn-red" class="btn-red" type="button" disabled>Rojo</button>
+    </div>
+    <button id="btn-restore" class="btn-restore" type="button" disabled>Restaurar estado</button>
+
     <p class="hint">
       Al conectar se abrirá una pestaña para elegir el puerto USB (el popup se cierra solo).
-      Verde = libre, amarillo = Meet/Teams abierto, rojo = en junta.
+      Verde = libre, azul = Meet/Teams abierto, rojo = en junta.
     </p>
 
     <script src="popup.js"></script>
