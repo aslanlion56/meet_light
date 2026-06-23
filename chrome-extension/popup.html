@@ -3,6 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <title>Meet Light</title>
+    <link rel="stylesheet" href="led-indicator.css" />
     <style>
       body {
         width: 280px;
@@ -58,6 +59,41 @@
 
       .dot.disconnected {
         background: #9ca3af;
+      }
+
+      .dot.connecting {
+        background: #eab308;
+      }
+
+      .diagnostics {
+        margin-top: 10px;
+        padding-top: 10px;
+        border-top: 1px solid #e5e7eb;
+        font-size: 12px;
+        color: #6b7280;
+      }
+
+      .diagnostics-row {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 4px;
+      }
+
+      .diagnostics-row span:last-child {
+        color: #374151;
+        font-weight: 500;
+        max-width: 140px;
+        text-align: right;
+        word-break: break-word;
+      }
+
+      .btn-secondary {
+        background: #4b5563;
+        margin-top: 8px;
+      }
+
+      .btn-secondary:hover {
+        background: #374151;
       }
 
       button {
@@ -165,6 +201,11 @@
   <body>
     <h1>Meet Light</h1>
 
+    <div class="led-preview" aria-live="polite">
+      <div id="led-lamp" class="led-lamp led-blink-blue" aria-label="Sin conexión serial"></div>
+      <p id="led-label" class="led-label">Sin conexión serial (parpadeo azul)</p>
+    </div>
+
     <div class="status-card">
       <div class="status-row">
         <span>Estado</span>
@@ -176,9 +217,20 @@
           <span class="dot disconnected"></span>Desconectado
         </span>
       </div>
+      <div class="diagnostics">
+        <div class="diagnostics-row">
+          <span>Puertos autorizados</span>
+          <span id="ports-found">—</span>
+        </div>
+        <div class="diagnostics-row">
+          <span>Último error</span>
+          <span id="last-error">—</span>
+        </div>
+      </div>
     </div>
 
     <button id="connect-btn" type="button">Conectar Arduino</button>
+    <button id="reconnect-btn" class="btn-secondary" type="button">Reconectar ahora</button>
     <p id="error-msg" class="error" role="alert"></p>
 
     <p class="section-label">Prueba manual del LED</p>
@@ -190,10 +242,11 @@
     <button id="btn-restore" class="btn-restore" type="button" disabled>Restaurar estado</button>
 
     <p class="hint">
-      Al conectar se abrirá una pestaña para elegir el puerto USB (el popup se cierra solo).
-      Verde = libre, azul = Meet/Teams abierto, rojo = en junta.
+      El círculo de arriba replica el LED del Arduino. Tras cerrar Chrome puede hacer falta
+      pulsar Conectar Arduino y elegir el puerto USB una vez.
     </p>
 
+    <script src="led-indicator.js"></script>
     <script src="popup.js"></script>
   </body>
 </html>

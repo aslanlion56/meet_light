@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Mock Serial Host Test</title>
+  </head>
+  <body>
+    <p>Página de prueba interna para validar el flujo HOST_READY → AUTO_CONNECT con serial simulado.</p>
+    <script type="module">
+      import { createSerialManager } from '../serial-manager.js';
+
+      const writer = {
+        write: async () => {},
+        close: async () => {},
+        releaseLock: () => {}
+      };
+
+      const port = {
+        open: async () => {},
+        close: async () => {},
+        writable: { getWriter: () => writer },
+        readable: {
+          getReader: () => ({
+            read: async () => ({ done: true }),
+            cancel: async () => {},
+            releaseLock: () => {}
+          })
+        },
+        addEventListener: () => {},
+        getInfo: () => ({ usbVendorId: 0x2341 })
+      };
+
+      navigator.serial = {
+        getPorts: async () => [port],
+        addEventListener: () => {}
+      };
+
+      window.__mockSerialManager = createSerialManager(navigator.serial);
+      window.__mockReady = true;
+    </script>
+  </body>
+</html>

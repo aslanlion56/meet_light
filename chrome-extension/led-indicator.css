@@ -1,0 +1,65 @@
+.led-preview {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  padding: 14px 12px;
+  border-radius: 8px;
+  background: #111827;
+}
+
+.led-preview .led-label {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 500;
+  color: #e5e7eb;
+  text-align: center;
+}
+
+.led-lamp {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.15);
+  box-shadow:
+    0 0 18px var(--led-glow, transparent),
+    inset 0 -6px 12px rgba(0, 0, 0, 0.35);
+  transition: background-color 0.2s ease;
+}
+
+.led-lamp.led-green {
+  --led-glow: #22c55e;
+  background: #22c55e;
+}
+
+.led-lamp.led-blue {
+  --led-glow: #2563eb;
+  background: #2563eb;
+}
+
+.led-lamp.led-red {
+  --led-glow: #ef4444;
+  background: #ef4444;
+}
+
+.led-lamp.led-blink-blue {
+  --led-glow: #2563eb;
+  background: #2563eb;
+  animation: led-blink-blue 1s ease-in-out infinite;
+}
+
+@keyframes led-blink-blue {
+  0%,
+  100% {
+    opacity: 1;
+    box-shadow:
+      0 0 20px #2563eb,
+      inset 0 -6px 12px rgba(0, 0, 0, 0.35);
+  }
+
+  50% {
+    opacity: 0.12;
+    box-shadow: inset 0 -6px 12px rgba(0, 0, 0, 0.35);
+  }
+}
