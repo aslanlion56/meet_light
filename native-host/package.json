@@ -1,0 +1,14 @@
+{
+  "name": "meet-light-native-host",
+  "version": "1.1.0",
+  "description": "Native Messaging host for Meet Light Arduino serial control",
+  "private": true,
+  "main": "host.js",
+  "scripts": {
+    "start": "node host.js",
+    "test": "node --test test/*.test.js"
+  },
+  "dependencies": {
+    "serialport": "^13.0.0"
+  }
+}

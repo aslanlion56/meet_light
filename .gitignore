@@ -1,1 +1,3 @@
 chrome-extension/node_modules/
+native-host/node_modules/
+native-host/.node-path

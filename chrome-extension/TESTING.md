@@ -1,70 +1,72 @@
-# Pruebas — Meet Light Extension
+# Pruebas — Meet Light
 
-## Tests automatizados (sin hardware)
+## Tests automatizados
 
-Desde la carpeta `chrome-extension/`:
+### Extensión
 
 ```bash
+cd chrome-extension
 npm install
 npm test
 ```
 
 Cubre:
 
-- Mapeo de estados → bytes serial
-- Conexión simulada con puerto mock
+- Cliente Native Messaging (`native-serial-client`)
+- Autorización de mensajes (`message-auth`)
 - Prioridad de estados Meet/Teams
-- Reset y deduplicación de pestañas serial-host
+- Pestañas serial-host
 
-## Checklist E2E manual (con Arduino)
+### Host nativo
 
-### 1. Conexión inicial
+```bash
+cd native-host
+npm ci || npm install
+npm test
+```
 
-1. Recarga la extensión en `chrome://extensions`.
-2. Cierra Arduino IDE y Monitor Serial.
-3. Popup → **Conectar Arduino** → en la pestaña serial pulsa **Elegir puerto USB**.
-4. Espera mensaje **¡Conectado!** en la pestaña de conexión.
-5. Popup y pestaña serial deben mostrar el **círculo verde** y **Conectado**.
-6. LED físico en **verde**.
+Cubre validación de protocolo y lógica de selección de puerto.
 
-### 2. Estados Meet/Teams
+## Checklist E2E — macOS
 
-1. Abre Meet sin unirte → círculo y LED **azul**.
-2. Únete a la llamada → círculo y LED **rojo**.
-3. Cuelga (pestaña abierta) → **azul**.
-4. Cierra la pestaña → **verde**.
+1. Instalar host: `bash scripts/install-native-host-macos.sh`
+2. Recargar extensión en `chrome://extensions`
+3. Cerrar Arduino IDE / Monitor Serial
+4. Conectar USB → popup **Reconectar ahora**
+5. Verificar popup y LED físico en **verde**
+6. Probar botones manuales (Verde/Azul/Rojo) y **Restaurar estado**
+7. Abrir Meet sin unirte → azul; unirte → rojo
+8. Reiniciar Chrome (Cmd+Q) → reconectar sin selector manual
+9. Desconectar USB → parpadeo azul en LED y popup
 
-### 3. Reinicio de Chrome (comportamiento esperado)
+## Checklist E2E — Windows
 
-1. Con todo conectado, cierra Chrome con **Cmd+Q**.
-2. Abre Chrome de nuevo.
-3. El LED físico debe **parpadear en azul** (sin datos serial).
-4. Popup: círculo con **parpadeo azul**, estado **Desconectado**.
-5. Si **Puertos autorizados: 0** → pulsa **Conectar Arduino** y elige el puerto (un clic).
-6. Si **Puertos autorizados: 1** → pulsa **Reconectar ahora** en el popup.
-
-> No se espera reconexión automática tras Cmd+Q. Es el comportamiento normal de Web Serial.
-
-### 4. Pestaña serial cerrada
-
-1. Cierra la pestaña fijada **Meet Light — conexión serial**.
-2. LED pasa a **parpadeo azul**.
-3. Popup → **Conectar Arduino** para volver a conectar.
-
-### 5. USB desconectado
-
-1. Desconecta el cable USB → LED parpadea azul.
-2. Reconecta USB → pulsa **Reconectar ahora** o **Elegir puerto USB** en la pestaña serial.
+1. Instalar Node.js LTS y verificar `node -v`
+2. Si PowerShell bloquea scripts:
+   `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned`
+3. Instalar host:
+   `.\scripts\install-native-host-windows.ps1`
+4. Verificar manifest:
+   `%LOCALAPPDATA%\MeetLight\NativeMessagingHosts\com.meetlight.serial_host.json`
+5. Verificar registro:
+   `HKCU\Software\Google\Chrome\NativeMessagingHosts\com.meetlight.serial_host`
+6. Instalar driver CH340/FTDI si no aparece `COMx`
+7. Cerrar Arduino IDE / Monitor Serial
+8. Cargar extensión y confirmar ID `hgcljcenaadbkdbmfnhbdnaednbbijhi`
+9. Repetir pasos 4–9 del checklist macOS usando **Alt+F4** para reinicio
 
 ## Diagnóstico
 
-| Popup / pestaña serial | Significado |
-|------------------------|-------------|
-| Círculo parpadeando azul | Sin conexión serial (como el LED físico) |
-| Círculo verde / azul / rojo | Conectado; color = estado Meet/Teams |
-| Puertos: 0 | Chrome no recuerda el permiso USB → elegir puerto manualmente |
-| Puertos: 1, Desconectado | Permiso OK pero falló `port.open` → cierra Arduino IDE |
-| Reconectando… | Intento manual en curso |
-| Último error visible | Detalle del fallo más reciente |
+| Señal | Significado |
+|-------|-------------|
+| Círculo parpadeando azul | Sin conexión serial |
+| Puertos detectados: 0 | Sin USB/driver |
+| Puertos: 1+, Desconectado | Puerto detectado pero no abierto |
+| Badge `!` en icono | Sin puertos detectados |
+| Badge `…` en icono | Puerto detectado, sin conexión activa |
+| Último error | Detalle sanitizado del fallo |
 
-La pestaña **Meet Light — conexión serial** muestra el mismo indicador circular que el popup.
+## Notas
+
+- El camino de producción es **Native Messaging** (`background.js` → `native-host/host.js`).
+- `serial-manager.js` se conserva solo para pruebas legacy de Web Serial.

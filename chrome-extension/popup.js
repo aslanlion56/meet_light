@@ -158,30 +158,30 @@ async function restoreState() {
 async function reconnectNow() {
   showError('');
   reconnectBtn.disabled = true;
+  connectBtn.disabled = true;
   reconnectBtn.textContent = 'Reconectando...';
   renderSerialStatus('connecting', false);
   renderLedPreview(meetingStatus, false);
 
   try {
-    if (portsFound === 0) {
-      await chrome.runtime.sendMessage({ type: 'OPEN_SERIAL_SETUP' });
-      return;
-    }
-
-    const result = await chrome.runtime.sendMessage({ type: 'RECONNECT_NOW' });
+    const result = await chrome.runtime.sendMessage({
+      type: 'RECONNECT',
+      openSetupOnFailure: 'no-ports'
+    });
 
     if (result?.skipped && result?.reason === 'already_connected') {
       return;
     }
 
     if (!result?.connected) {
-      throw new Error(result?.error || 'No se pudo reconectar. Abre la pestaña serial.');
+      throw new Error(result?.error || 'No se pudo conectar al Arduino.');
     }
   } catch (error) {
     showError(error.message || 'Error al reconectar.');
     console.error(error);
   } finally {
     reconnectBtn.disabled = false;
+    connectBtn.disabled = false;
     reconnectBtn.textContent = 'Reconectar ahora';
     refreshStatus();
   }
@@ -189,18 +189,7 @@ async function reconnectNow() {
 
 connectBtn.addEventListener('click', async () => {
   showError('');
-  try {
-    if (portsFound > 0 && !serialConnected) {
-      await reconnectNow();
-      return;
-    }
-
-    await chrome.runtime.sendMessage({ type: 'OPEN_SERIAL_SETUP' });
-    refreshStatus();
-  } catch (error) {
-    showError('No se pudo abrir la pestaña serial.');
-    console.error(error);
-  }
+  await reconnectNow();
 });
 
 reconnectBtn.addEventListener('click', reconnectNow);

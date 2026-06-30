@@ -97,7 +97,7 @@
     </style>
   </head>
   <body>
-    <h1>Meet Light — conexión serial</h1>
+    <h1>Meet Light — conexión nativa</h1>
     <p id="intro-text">Pestaña en segundo plano. No la cierres; déjala fijada.</p>
 
     <div class="led-preview" aria-live="polite">
@@ -106,20 +106,20 @@
     </div>
 
     <div id="setup-panel">
-      <p><strong>Primera conexión:</strong> elige el puerto USB desde aquí.</p>
+      <p><strong>Conexión automática:</strong> el host nativo elegirá el puerto por defecto.</p>
       <ol>
         <li>Cierra Arduino IDE y Monitor Serial</li>
+        <li>Conecta el Arduino por USB</li>
         <li>Pulsa el botón de abajo</li>
-        <li>Elige el puerto del Arduino</li>
       </ol>
-      <button id="setup-btn" type="button">Elegir puerto USB</button>
+      <button id="setup-btn" type="button">Conectar Arduino</button>
       <div id="setup-status" role="status"></div>
     </div>
 
     <dl>
       <dt>Estado</dt>
       <dd id="host-status">Iniciando…</dd>
-      <dt>Puertos autorizados</dt>
+      <dt>Puertos detectados</dt>
       <dd id="host-ports">—</dd>
       <dt>Último error</dt>
       <dd id="host-error">—</dd>
