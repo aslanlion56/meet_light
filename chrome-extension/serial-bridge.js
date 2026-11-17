@@ -118,8 +118,10 @@ export function createSerialBridge({ nativeSerial, storage, onBadgeChange }) {
 
       return {
         ...data,
-        status: data.status ?? meetingStatus,
-        platform: data.platform ?? meetingPlatform,
+        status: meetingStatus ?? data.status,
+        platform: meetingStatus ? meetingPlatform : data.platform,
+        ledStatus: resolveLedStatus(),
+        manualOverride,
         serialConnected: liveConnected,
         serialConnectionState: connectionState,
         portsFound,
@@ -136,8 +138,10 @@ export function createSerialBridge({ nativeSerial, storage, onBadgeChange }) {
       onBadgeChange(false, 0);
       return {
         ...data,
-        status: data.status ?? meetingStatus,
-        platform: data.platform ?? meetingPlatform,
+        status: meetingStatus ?? data.status,
+        platform: meetingStatus ? meetingPlatform : data.platform,
+        ledStatus: resolveLedStatus(),
+        manualOverride,
         serialConnected: false,
         serialConnectionState: 'disconnected',
         lastError: error.message,
@@ -283,6 +287,7 @@ export function createSerialBridge({ nativeSerial, storage, onBadgeChange }) {
     restoreAutomaticLed,
     setGlobalStatus,
     isSerialConnected,
+    getLedStatus: resolveLedStatus,
     bootstrap,
     stopHeartbeatLoop
   };

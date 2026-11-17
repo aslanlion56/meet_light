@@ -3,15 +3,27 @@ import { createNativeSerialClient } from './native-serial-client.js';
 import { createSerialHostTab } from './serial-host-tab.js';
 import { createSerialBridge } from './serial-bridge.js';
 import { createMeetingController } from './meeting-controller.js';
-import { assertAuthorized } from './message-auth.js';
+import { createMeetingLog } from './meeting-log.js';
+import { assertAuthorized, isMeetingUrl, platformFromUrl } from './message-auth.js';
+import { createActionIcon } from './action-icon.js';
 import { MESSAGE_TYPES, normalizeMessageType } from './message-types.js';
 import { NATIVE_HOST_NAME } from './constants.js';
+import { createCloudSync } from './cloud-sync.js';
+import { FIREBASE_CONFIG, REPORT_ORIGIN } from './firebase-config.js';
 
 const storage = createConnectionState(chrome.storage.local);
 const serialHostTab = createSerialHostTab(chrome);
 const nativeSerial = createNativeSerialClient(chrome, NATIVE_HOST_NAME);
 
+const actionIcon = createActionIcon(chrome);
+
+// El icono de la barra replica el LED físico (gris si no hay conexión serial).
+function refreshIcon() {
+  actionIcon.update(serialBridge.getLedStatus(), serialBridge.isSerialConnected());
+}
+
 function updateBadge(connected, portsFound) {
+  refreshIcon();
   if (connected) {
     chrome.action.setBadgeText({ text: '' });
     return;
@@ -36,6 +48,52 @@ const serialBridge = createSerialBridge({
 const meetingController = createMeetingController({
   storage,
   serialBridge
+});
+
+function logError(error) {
+  console.warn('[Meet Light] Registro de juntas:', error);
+}
+
+const meetingLog = createMeetingLog({
+  storageApi: chrome.storage.local,
+  // Sin await: la subida usa la misma cola del registro y no debe bloquearla.
+  onSessionEnded: () => {
+    cloudSync.syncPending().catch(logError);
+  }
+});
+
+const cloudSync = createCloudSync({
+  storageApi: chrome.storage.local,
+  meetingLog,
+  config: FIREBASE_CONFIG
+});
+
+async function closeOrphanMeetingSessions() {
+  const tabs = await chrome.tabs.query({});
+  await meetingLog.closeOrphanSessions(tabs.map((tab) => tab.id));
+}
+
+// El service worker pudo reiniciarse: cierra juntas cuya pestaña ya no existe
+// y reintenta subir lo que haya quedado pendiente (p. ej. por falta de red).
+closeOrphanMeetingSessions()
+  .then(() => cloudSync.syncPending())
+  .catch(logError);
+
+// La página de reportes entrega la sesión de Firebase tras iniciar con Google.
+chrome.runtime.onMessageExternal.addListener((message, sender, sendResponse) => {
+  if (sender.origin !== REPORT_ORIGIN || message?.type !== 'LINK_ACCOUNT') {
+    sendResponse({ ok: false, error: 'Origen no autorizado.' });
+    return false;
+  }
+
+  cloudSync
+    .linkAccount(message)
+    .then(() => {
+      cloudSync.syncPending().catch(logError);
+      sendResponse({ ok: true });
+    })
+    .catch((error) => sendResponse({ ok: false, error: error.message }));
+  return true;
 });
 
 async function openSerialSetupTab() {
@@ -66,8 +124,33 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       status: message.status,
       platform: message.platform
     });
+    if (message.status === 'active') {
+      meetingLog.trackSession(sender.tab.id, message.platform).catch(logError);
+    } else {
+      meetingLog.endSession(sender.tab.id).catch(logError);
+    }
     meetingController
       .updateGlobalState()
+      .then(() => sendResponse({ ok: true }))
+      .catch((error) => sendResponse({ ok: false, error: error.message }))
+      .finally(refreshIcon);
+    return true;
+  }
+
+  if (type === MESSAGE_TYPES.MEETING_INFO && sender.tab?.id != null) {
+    // Solo se envía durante una junta activa; también re-sincroniza el estado
+    // si el service worker se reinició y perdió las pestañas en memoria.
+    meetingController.setTabState(sender.tab.id, {
+      status: 'active',
+      platform: message.platform
+    });
+    meetingController.updateGlobalState().catch(logError).finally(refreshIcon);
+    meetingLog
+      .trackSession(sender.tab.id, message.platform, {
+        title: message.title,
+        meetingCode: message.meetingCode,
+        participants: message.participants
+      })
       .then(() => sendResponse({ ok: true }))
       .catch((error) => sendResponse({ ok: false, error: error.message }));
     return true;
@@ -140,7 +223,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     serialBridge
       .setManualColor(message.status)
       .then((result) => sendResponse(result))
-      .catch((error) => sendResponse({ ok: false, error: error.message }));
+      .catch((error) => sendResponse({ ok: false, error: error.message }))
+      .finally(refreshIcon);
     return true;
   }
 
@@ -148,6 +232,31 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     serialBridge
       .restoreAutomaticLed((force) => meetingController.updateGlobalState(force))
       .then((result) => sendResponse(result))
+      .catch((error) => sendResponse({ ok: false, error: error.message }))
+      .finally(refreshIcon);
+    return true;
+  }
+
+  if (type === MESSAGE_TYPES.CLOUD_STATUS) {
+    cloudSync
+      .getStatus()
+      .then((status) => sendResponse({ ok: true, ...status }))
+      .catch((error) => sendResponse({ ok: false, error: error.message }));
+    return true;
+  }
+
+  if (type === MESSAGE_TYPES.CLOUD_SYNC) {
+    cloudSync
+      .syncPending()
+      .then((result) => sendResponse({ ok: true, ...result }))
+      .catch((error) => sendResponse({ ok: false, error: error.message }));
+    return true;
+  }
+
+  if (type === MESSAGE_TYPES.CLOUD_UNLINK) {
+    cloudSync
+      .unlinkAccount()
+      .then(() => sendResponse({ ok: true }))
       .catch((error) => sendResponse({ ok: false, error: error.message }));
     return true;
   }
@@ -162,20 +271,80 @@ chrome.tabs.onRemoved.addListener(async (tabId) => {
     await storage.clearSerialHostTabId();
   }
   if (meetingController.removeTabState(tabId)) {
-    meetingController.updateGlobalState();
+    meetingController.updateGlobalState().catch(logError).finally(refreshIcon);
   }
+  meetingLog.endSession(tabId).catch(logError);
 });
+
+// La pestaña navegó fuera de Meet/Teams: el content script ya no avisará.
+chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
+  if (!changeInfo.url || isMeetingUrl(changeInfo.url)) {
+    return;
+  }
+  if (meetingController.removeTabState(tabId)) {
+    meetingController.updateGlobalState().catch(logError).finally(refreshIcon);
+  }
+  meetingLog.endSession(tabId).catch(logError);
+});
+
+const MEETING_URL_PATTERNS = [
+  'https://meet.google.com/*',
+  'https://teams.microsoft.com/*',
+  'https://teams.live.com/*'
+];
+
+/**
+ * Al arrancar el service worker la memoria está vacía aunque haya pestañas de
+ * Meet/Teams abiertas. Se reconstruye el estado desde las pestañas reales para
+ * que LED, popup e icono partan de lo mismo; cada content script lo afina
+ * después (espera/en junta) con su reporte periódico.
+ */
+async function syncOpenMeetingTabs() {
+  const tabs = await chrome.tabs.query({ url: MEETING_URL_PATTERNS });
+  for (const tab of tabs) {
+    if (tab.id != null && !meetingController.hasTabState(tab.id)) {
+      meetingController.setTabState(tab.id, {
+        status: 'waiting',
+        platform: platformFromUrl(tab.url)
+      });
+    }
+  }
+  await meetingController.updateGlobalState(true);
+  return tabs;
+}
+
+async function initialize() {
+  await syncOpenMeetingTabs().catch(logError);
+  try {
+    await serialBridge.bootstrap();
+    // bootstrap pudo conectar después de calcular el estado: reenvía el color.
+    await meetingController.updateGlobalState(true);
+  } catch {
+    serialBridge.stopHeartbeatLoop();
+    updateBadge(false, 0);
+  }
+  refreshIcon();
+}
+
+initialize();
 
 chrome.runtime.onStartup.addListener(() => {
-  serialBridge.bootstrap().catch(() => {
-    serialBridge.stopHeartbeatLoop();
-    updateBadge(false, 0);
-  });
+  // Chrome arrancó de cero: ninguna junta guardada sigue viva.
+  meetingLog.closeOrphanSessions([]).catch(logError);
 });
 
-chrome.runtime.onInstalled.addListener(() => {
-  serialBridge.bootstrap().catch(() => {
-    serialBridge.stopHeartbeatLoop();
-    updateBadge(false, 0);
-  });
+// Al instalar o recargar la extensión, los content scripts de las pestañas ya
+// abiertas quedan desconectados: se vuelven a inyectar para no tener que
+// recargar Meet/Teams.
+chrome.runtime.onInstalled.addListener(async ({ reason }) => {
+  if (reason !== 'install' && reason !== 'update') {
+    return;
+  }
+  const tabs = await chrome.tabs.query({ url: MEETING_URL_PATTERNS }).catch(() => []);
+  for (const tab of tabs) {
+    const file = platformFromUrl(tab.url) === 'meet' ? 'content-meet.js' : 'content-teams.js';
+    chrome.scripting
+      .executeScript({ target: { tabId: tab.id }, files: [file] })
+      .catch(logError);
+  }
 });

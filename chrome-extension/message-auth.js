@@ -12,9 +12,16 @@ export function isExtensionSender(sender, chromeApi) {
   return sender?.id === chromeApi.runtime.id;
 }
 
+export function isMeetingUrl(url) {
+  return MEETING_HOSTS.some((pattern) => pattern.test(url || ''));
+}
+
+export function platformFromUrl(url) {
+  return /^https:\/\/meet\.google\.com\//.test(url || '') ? 'meet' : 'teams';
+}
+
 export function isContentScriptSender(sender) {
-  const url = sender?.tab?.url || '';
-  return MEETING_HOSTS.some((pattern) => pattern.test(url));
+  return isMeetingUrl(sender?.tab?.url);
 }
 
 export function isSerialHostSender(sender, chromeApi) {
@@ -45,7 +52,7 @@ export function canHandleHostReady(sender, chromeApi) {
 }
 
 export function assertAuthorized(type, sender, chromeApi) {
-  if (type === MESSAGE_TYPES.MEETING_STATE) {
+  if (type === MESSAGE_TYPES.MEETING_STATE || type === MESSAGE_TYPES.MEETING_INFO) {
     if (!canReportMeetingState(sender)) {
       throw new Error('Remitente no autorizado para estado de reunión.');
     }
@@ -70,7 +77,10 @@ export function assertAuthorized(type, sender, chromeApi) {
     type === MESSAGE_TYPES.RECONNECT ||
     type === MESSAGE_TYPES.GET_STATUS ||
     type === MESSAGE_TYPES.MANUAL_LED ||
-    type === MESSAGE_TYPES.RESTORE_LED
+    type === MESSAGE_TYPES.RESTORE_LED ||
+    type === MESSAGE_TYPES.CLOUD_STATUS ||
+    type === MESSAGE_TYPES.CLOUD_SYNC ||
+    type === MESSAGE_TYPES.CLOUD_UNLINK
   ) {
     if (!canAccessSerialActions(sender, chromeApi)) {
       throw new Error('Acción serial no permitida para este remitente.');

@@ -3,7 +3,13 @@
 const meetingStatusEl = document.getElementById('meeting-status');
 const serialStatusEl = document.getElementById('serial-status');
 const connectBtn = document.getElementById('connect-btn');
-const reconnectBtn = document.getElementById('reconnect-btn');
+const historyBtn = document.getElementById('history-btn');
+const cloudAccountEl = document.getElementById('cloud-account');
+const cloudPendingEl = document.getElementById('cloud-pending');
+const cloudMainBtn = document.getElementById('cloud-main-btn');
+const cloudUnlinkBtn = document.getElementById('cloud-unlink-btn');
+
+const REPORT_URL = 'https://meet-light-juntas.web.app/';
 const errorMsgEl = document.getElementById('error-msg');
 const portsFoundEl = document.getElementById('ports-found');
 const lastErrorEl = document.getElementById('last-error');
@@ -82,13 +88,11 @@ function renderSerialStatus(connectionState, connected) {
     serialStatusEl.innerHTML = '<span class="dot connecting"></span>Reconectando...';
     connectBtn.textContent = 'Reconectando...';
     connectBtn.disabled = true;
-    reconnectBtn.disabled = true;
     setManualButtonsEnabled(false);
     return;
   }
 
   connectBtn.disabled = false;
-  reconnectBtn.disabled = false;
 
   if (connected) {
     serialStatusEl.innerHTML = '<span class="dot green"></span>Conectado';
@@ -118,7 +122,7 @@ async function refreshStatus() {
     status.serialConnectionState || (connected ? 'connected' : 'disconnected'),
     connected
   );
-  renderLedPreview(meeting, connected);
+  renderLedPreview(status.ledStatus || meeting, connected);
   renderDiagnostics(status);
 }
 
@@ -157,9 +161,6 @@ async function restoreState() {
 
 async function reconnectNow() {
   showError('');
-  reconnectBtn.disabled = true;
-  connectBtn.disabled = true;
-  reconnectBtn.textContent = 'Reconectando...';
   renderSerialStatus('connecting', false);
   renderLedPreview(meetingStatus, false);
 
@@ -180,23 +181,43 @@ async function reconnectNow() {
     showError(error.message || 'Error al reconectar.');
     console.error(error);
   } finally {
-    reconnectBtn.disabled = false;
     connectBtn.disabled = false;
-    reconnectBtn.textContent = 'Reconectar ahora';
     refreshStatus();
   }
 }
 
-connectBtn.addEventListener('click', async () => {
-  showError('');
-  await reconnectNow();
+connectBtn.addEventListener('click', reconnectNow);
+historyBtn.addEventListener('click', () => {
+  chrome.tabs.create({ url: chrome.runtime.getURL('history.html') });
 });
-
-reconnectBtn.addEventListener('click', reconnectNow);
 btnGreen.addEventListener('click', () => sendManualColor('free'));
 btnBlue.addEventListener('click', () => sendManualColor('waiting'));
 btnRed.addEventListener('click', () => sendManualColor('active'));
 btnRestore.addEventListener('click', restoreState);
 
+let cloudLinked = false;
+
+async function refreshCloudStatus() {
+  const status = await chrome.runtime.sendMessage({ type: 'CLOUD_STATUS' });
+  cloudLinked = Boolean(status?.linked);
+  cloudAccountEl.textContent = cloudLinked ? status.email || 'Vinculada' : 'Sin vincular';
+  cloudPendingEl.textContent = status?.lastError
+    ? `${status.pending} · ${status.lastError}`
+    : String(status?.pending ?? 0);
+  cloudMainBtn.textContent = cloudLinked ? 'Abrir reporte web' : 'Vincular cuenta de Google';
+  cloudUnlinkBtn.hidden = !cloudLinked;
+}
+
+cloudMainBtn.addEventListener('click', () => {
+  chrome.tabs.create({ url: cloudLinked ? REPORT_URL : `${REPORT_URL}?vincular=1` });
+});
+
+cloudUnlinkBtn.addEventListener('click', async () => {
+  await chrome.runtime.sendMessage({ type: 'CLOUD_UNLINK' });
+  refreshCloudStatus();
+});
+
 refreshStatus();
+refreshCloudStatus();
 setInterval(refreshStatus, 1000);
+setInterval(refreshCloudStatus, 3000);

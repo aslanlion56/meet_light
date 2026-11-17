@@ -28,6 +28,10 @@ export function createMeetingController({ storage, serialBridge }) {
     tabStates.set(tabId, state);
   }
 
+  function hasTabState(tabId) {
+    return tabStates.has(tabId);
+  }
+
   function removeTabState(tabId) {
     return tabStates.delete(tabId);
   }
@@ -39,6 +43,7 @@ export function createMeetingController({ storage, serialBridge }) {
   return {
     updateGlobalState,
     setTabState,
+    hasTabState,
     removeTabState,
     getSnapshot
   };

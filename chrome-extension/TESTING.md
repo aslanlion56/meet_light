@@ -32,7 +32,7 @@ Cubre validación de protocolo y lógica de selección de puerto.
 1. Instalar host: `bash scripts/install-native-host-macos.sh`
 2. Recargar extensión en `chrome://extensions`
 3. Cerrar Arduino IDE / Monitor Serial
-4. Conectar USB → popup **Reconectar ahora**
+4. Conectar USB → popup **Conectar Arduino**
 5. Verificar popup y LED físico en **verde**
 6. Probar botones manuales (Verde/Azul/Rojo) y **Restaurar estado**
 7. Abrir Meet sin unirte → azul; unirte → rojo

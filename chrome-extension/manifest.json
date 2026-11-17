@@ -2,14 +2,19 @@
   "manifest_version": 3,
   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAi6+wktXR91Y8h5G6rE3dXu8hJoWEF625FuMCCB1V9qzwypJpV+zvfzYvPrzeAeMCxs4FJ3/mnq+kg1rkqtkEj5zgV9KKi2fkM0PpCgivbYUocTVzac72wFQd7TJeFGiMOVDi103wEoLgs2N5o+I+4wQPC85SzsG7EqADdRaVQvzid32RnF0wef2Viu7plj8ZI0NzJ+ZIHIVuDqoTTQOHBJBBDax6BS6YpcfQ5s95EDnAf+GEYv0T1dmnplYZSZIW+Lvij56y7MUDzrht8JUU6jRhxKC1Ya1+8u1lCGAHUlv9PC5PTojAxJdPgfroovUHYL9mqW/JWNwf1kacK+dCYQIDAQAB",
   "name": "Meet Light - Semáforo de junta",
-  "version": "1.3.0",
+  "version": "1.4.1",
   "description": "Enciende un LED en Arduino cuando hay una junta activa en Google Meet o Microsoft Teams.",
-  "permissions": ["nativeMessaging", "storage", "tabs"],
+  "permissions": ["nativeMessaging", "scripting", "storage", "tabs"],
   "host_permissions": [
     "https://meet.google.com/*",
     "https://teams.microsoft.com/*",
-    "https://teams.live.com/*"
+    "https://teams.live.com/*",
+    "https://securetoken.googleapis.com/*",
+    "https://firestore.googleapis.com/*"
   ],
+  "externally_connectable": {
+    "matches": ["https://meet-light-juntas.web.app/*"]
+  },
   "background": {
     "service_worker": "background.js",
     "type": "module"

@@ -89,7 +89,23 @@
 
       .btn-secondary {
         background: #4b5563;
+      }
+
+      .main-buttons {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+
+      .btn-link,
+      .btn-link:hover {
+        width: auto;
         margin-top: 8px;
+        padding: 0;
+        background: none;
+        color: #2563eb;
+        font-size: 12px;
+        text-decoration: underline;
       }
 
       .btn-secondary:hover {
@@ -229,8 +245,24 @@
       </div>
     </div>
 
-    <button id="connect-btn" type="button">Conectar Arduino</button>
-    <button id="reconnect-btn" class="btn-secondary" type="button">Reconectar ahora</button>
+    <p class="section-label">Reportes en la nube</p>
+    <div class="status-card">
+      <div class="status-row">
+        <span>Cuenta</span>
+        <span id="cloud-account">Sin vincular</span>
+      </div>
+      <div class="status-row">
+        <span>Pendientes de subir</span>
+        <span id="cloud-pending">0</span>
+      </div>
+      <button id="cloud-unlink-btn" class="btn-link" type="button" hidden>Desvincular cuenta</button>
+    </div>
+
+    <div class="main-buttons">
+      <button id="connect-btn" type="button">Conectar Arduino</button>
+      <button id="history-btn" class="btn-secondary" type="button">Historial de juntas</button>
+      <button id="cloud-main-btn" class="btn-secondary" type="button">Vincular cuenta de Google</button>
+    </div>
     <p id="error-msg" class="error" role="alert"></p>
 
     <p class="section-label">Prueba manual del LED</p>
@@ -243,7 +275,7 @@
 
     <p class="hint">
       El círculo de arriba replica el LED del Arduino. Si se desconecta, pulsa
-      Reconectar ahora.
+      Reconectar Arduino.
     </p>
 
     <script src="led-indicator.js"></script>

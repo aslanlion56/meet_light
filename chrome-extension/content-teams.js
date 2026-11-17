@@ -95,19 +95,87 @@
     return 'waiting';
   }
 
-  function reportState() {
-    const status = getMeetingStatus();
-    if (status === lastState) return;
-
-    lastState = status;
-    chrome.runtime.sendMessage({
-      type: 'MEETING_STATE',
-      status,
-      platform: 'teams'
-    });
+  function addName(names, raw) {
+    const name = (raw || '').replace(/\s+/g, ' ').trim();
+    if (!name || name.length > 120) return;
+    names.add(name);
   }
 
-  const observer = new MutationObserver(reportState);
+  // Teams no expone una API de integrantes: se leen del DOM. El panel
+  // "Personas" (si está abierto) da la lista completa; si no, se usan los
+  // mosaicos de video visibles.
+  function collectParticipants() {
+    const names = new Set();
+
+    for (const item of document.querySelectorAll('[data-tid^="participantsInCall-"]')) {
+      addName(names, item.getAttribute('data-tid').slice('participantsInCall-'.length));
+    }
+
+    for (const item of document.querySelectorAll('[data-cid="roster-participant"]')) {
+      addName(names, (item.getAttribute('aria-label') || '').split(',')[0]);
+    }
+
+    for (const tile of document.querySelectorAll('[data-cid="calling-participant-stream"]')) {
+      addName(names, (tile.getAttribute('aria-label') || '').split(',')[0]);
+    }
+
+    return [...names];
+  }
+
+  function getMeetingCode() {
+    return '';
+  }
+
+  function getMeetingTitle() {
+    return document.title.replace(/\s*\|\s*Microsoft Teams.*$/i, '').trim();
+  }
+
+  const INFO_INTERVAL_MS = 5000;
+
+  function reportInfo() {
+    if (getMeetingStatus() !== 'active') return;
+
+    try {
+      chrome.runtime
+        .sendMessage({
+          type: 'MEETING_INFO',
+          platform: 'teams',
+          title: getMeetingTitle(),
+          meetingCode: getMeetingCode(),
+          participants: collectParticipants()
+        })
+        .catch(() => {});
+    } catch {
+      // Extensión recargada: este content script quedó huérfano.
+    }
+  }
+
+  // `force` reenvía el estado aunque no haya cambiado: si el service worker se
+  // reinició, así recupera qué pestañas hay y en qué estado están.
+  function reportState(force = false) {
+    if (!chrome.runtime?.id) {
+      // La extensión se recargó y este script quedó huérfano: se apaga.
+      observer.disconnect();
+      timers.forEach(clearInterval);
+      return;
+    }
+
+    const status = getMeetingStatus();
+    if (!force && status === lastState) return;
+
+    lastState = status;
+    try {
+      chrome.runtime
+        .sendMessage({ type: 'MEETING_STATE', status, platform: 'teams' })
+        .catch(() => {});
+    } catch {
+      return;
+    }
+    reportInfo();
+  }
+
+  const timers = [];
+  const observer = new MutationObserver(() => reportState());
   observer.observe(document.documentElement, {
     childList: true,
     subtree: true,
@@ -115,6 +183,7 @@
     attributeFilter: ['aria-label', 'data-tid', 'style', 'class', 'hidden']
   });
 
-  setInterval(reportState, 2000);
+  timers.push(setInterval(() => reportState(), 2000));
+  timers.push(setInterval(() => reportState(true), INFO_INTERVAL_MS));
   reportState();
 })();

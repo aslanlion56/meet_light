@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Meet Light · Reporte de juntas</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header>
+      <h1>Meet Light <span>Reporte de juntas</span></h1>
+      <div id="account" class="account" hidden>
+        <span id="account-email"></span>
+        <button id="sign-out-btn" class="btn-ghost" type="button">Cerrar sesión</button>
+      </div>
+    </header>
+
+    <main>
+      <p id="notice" class="notice" role="status" hidden></p>
+
+      <section id="sign-in" class="card center" hidden>
+        <h2>Inicia sesión</h2>
+        <p>Usa la misma cuenta de Google que vinculaste en la extensión.</p>
+        <button id="sign-in-btn" type="button">Continuar con Google</button>
+      </section>
+
+      <section id="report" hidden>
+        <div class="filters card">
+          <label>Desde <input id="from" type="date" /></label>
+          <label>Hasta <input id="to" type="date" /></label>
+          <label>
+            Plataforma
+            <select id="platform">
+              <option value="">Todas</option>
+              <option value="meet">Google Meet</option>
+              <option value="teams">Microsoft Teams</option>
+            </select>
+          </label>
+          <label class="grow">
+            Buscar
+            <input id="search" type="search" placeholder="Junta o integrante" />
+          </label>
+          <button id="export-btn" type="button">Exportar CSV</button>
+        </div>
+
+        <div class="stats">
+          <div class="card stat"><span id="stat-count">0</span>Juntas</div>
+          <div class="card stat"><span id="stat-total">00:00:00</span>Tiempo total</div>
+          <div class="card stat"><span id="stat-average">00:00:00</span>Promedio por junta</div>
+          <div class="card stat"><span id="stat-people">0</span>Personas distintas</div>
+        </div>
+
+        <h2>Juntas</h2>
+        <div id="empty" class="card center" hidden>No hay juntas en este periodo.</div>
+        <div class="table-wrap">
+          <table id="meetings-table" hidden>
+            <thead>
+              <tr>
+                <th>Inicio</th>
+                <th>Duración</th>
+                <th>Plataforma</th>
+                <th>Junta</th>
+                <th>Integrantes</th>
+              </tr>
+            </thead>
+            <tbody id="meetings-rows"></tbody>
+          </table>
+        </div>
+
+        <h2>Por integrante</h2>
+        <div class="table-wrap">
+          <table id="people-table" hidden>
+            <thead>
+              <tr>
+                <th>Integrante</th>
+                <th>Juntas</th>
+                <th>Tiempo en llamada</th>
+              </tr>
+            </thead>
+            <tbody id="people-rows"></tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+
+    <script type="module" src="app.js"></script>
+  </body>
+</html>

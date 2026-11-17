@@ -92,19 +92,92 @@
     return 'waiting';
   }
 
-  function reportState() {
-    const status = getMeetingStatus();
-    if (status === lastState) return;
-
-    lastState = status;
-    chrome.runtime.sendMessage({
-      type: 'MEETING_STATE',
-      status,
-      platform: 'meet'
-    });
+  function addName(names, raw) {
+    const name = (raw || '').replace(/\s+/g, ' ').trim();
+    if (!name || name.length > 120) return;
+    names.add(name);
   }
 
-  const observer = new MutationObserver(reportState);
+  // Meet no expone una API de integrantes: se leen del DOM. Los mosaicos de
+  // video siempre están; el panel "Personas" (si está abierto) da la lista
+  // completa en llamadas grandes.
+  function collectParticipants() {
+    const names = new Set();
+
+    for (const item of document.querySelectorAll('[role="listitem"][aria-label]')) {
+      if (item.hasAttribute('data-participant-id') || item.querySelector('[data-participant-id]')) {
+        addName(names, item.getAttribute('aria-label'));
+      }
+    }
+
+    for (const tile of document.querySelectorAll('[data-participant-id]')) {
+      const selfName = tile.querySelector('[data-self-name]');
+      if (selfName) {
+        addName(names, selfName.getAttribute('data-self-name') || selfName.textContent);
+        continue;
+      }
+      const label = tile.querySelector('.notranslate');
+      if (label) addName(names, label.textContent);
+    }
+
+    return [...names];
+  }
+
+  function getMeetingCode() {
+    const match = location.pathname.match(/^\/([a-z]{3,4}-[a-z]{4}-[a-z]{3,4})/i);
+    return match ? match[1] : '';
+  }
+
+  function getMeetingTitle() {
+    return document.title.replace(/^Meet\s*[-–:]\s*/i, '').trim();
+  }
+
+  const INFO_INTERVAL_MS = 5000;
+
+  function reportInfo() {
+    if (getMeetingStatus() !== 'active') return;
+
+    try {
+      chrome.runtime
+        .sendMessage({
+          type: 'MEETING_INFO',
+          platform: 'meet',
+          title: getMeetingTitle(),
+          meetingCode: getMeetingCode(),
+          participants: collectParticipants()
+        })
+        .catch(() => {});
+    } catch {
+      // Extensión recargada: este content script quedó huérfano.
+    }
+  }
+
+  // `force` reenvía el estado aunque no haya cambiado: si el service worker se
+  // reinició, así recupera qué pestañas hay y en qué estado están.
+  function reportState(force = false) {
+    if (!chrome.runtime?.id) {
+      // La extensión se recargó y este script quedó huérfano: se apaga.
+      observer.disconnect();
+      timers.forEach(clearInterval);
+      return;
+    }
+
+    const status = getMeetingStatus();
+    if (!force && status === lastState) return;
+
+    lastState = status;
+    try {
+      chrome.runtime
+        .sendMessage({ type: 'MEETING_STATE', status, platform: 'meet' })
+        .catch(() => {});
+    } catch {
+      return;
+    }
+    reportInfo();
+  }
+
+  const timers = [];
+  const observer = new MutationObserver(() => reportState());
   observer.observe(document.documentElement, {
     childList: true,
     subtree: true,
@@ -112,6 +185,7 @@
     attributeFilter: ['aria-label', 'data-tooltip', 'style', 'class', 'hidden']
   });
 
-  setInterval(reportState, 2000);
+  timers.push(setInterval(() => reportState(), 2000));
+  timers.push(setInterval(() => reportState(true), INFO_INTERVAL_MS));
   reportState();
 })();

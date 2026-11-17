@@ -73,13 +73,42 @@ Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
 1. Abre `chrome://extensions` → **Modo de desarrollador**.
 2. **Cargar extensión sin empaquetar** → carpeta `chrome-extension/`.
 3. Verifica ID: `hgcljcenaadbkdbmfnhbdnaednbbijhi`.
-4. Popup → **Conectar Arduino** o **Reconectar ahora**.
+4. Popup → **Conectar Arduino**.
 
 ## Uso
 
 1. Conecta Arduino por USB.
-2. Pulsa **Reconectar ahora** en el popup.
+2. Pulsa **Conectar Arduino** en el popup (cambia a **Reconectar Arduino** cuando ya hay conexión).
 3. Estados automáticos según Meet/Teams (`meet.google.com`, `teams.microsoft.com`, `teams.live.com`).
+
+## Historial de juntas
+
+Cada junta (LED rojo) se registra con inicio, fin, duración e integrantes. Popup → **Historial de juntas** abre la tabla, con **Exportar CSV** y **Borrar historial**.
+
+- El historial local vive en este navegador (`chrome.storage.local`), máximo 1000 juntas.
+- Los integrantes se leen de la pantalla de Meet/Teams: se capturan los que aparecen en mosaicos de video o en el panel **Personas**. En llamadas grandes, abre ese panel para capturar la lista completa.
+
+### Reporte web (Firebase)
+
+Para consultar las juntas desde cualquier computadora: <https://meet-light-juntas.web.app>
+
+1. Popup → **Vincular cuenta de Google** → inicia sesión en la página que se abre.
+2. Al terminar cada junta, la extensión la sube a Firestore en `users/{uid}/meetings/{id}`. Lo que no se pudo subir (sin red) se reintenta solo.
+3. Abre la página en cualquier equipo con la misma cuenta: filtros por fecha/plataforma, totales, resumen por integrante y exportación CSV.
+
+Las reglas ([firestore.rules](firestore.rules)) solo permiten a cada usuario leer y escribir sus propias juntas.
+
+| Parte | Archivo |
+|-------|---------|
+| Página de reportes | [web/public/](web/public/) |
+| Subida a Firestore (REST, sin SDK) | [chrome-extension/cloud-sync.js](chrome-extension/cloud-sync.js) |
+| Proyecto y URL | [chrome-extension/firebase-config.js](chrome-extension/firebase-config.js), [.firebaserc](.firebaserc) |
+
+Desplegar cambios de la página o las reglas:
+
+```bash
+firebase deploy --only hosting,firestore:rules
+```
 
 ## Solución de problemas
 
