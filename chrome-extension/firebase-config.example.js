@@ -1,8 +1,9 @@
-// Configuración pública del proyecto Firebase (no es un secreto: el acceso lo
-// controlan las reglas de Firestore, no esta clave).
+// Plantilla de configuración de Firebase.
+// Copia este archivo a firebase-config.js (ignorado por git) y rellena los valores
+// de tu proyecto en Firebase Console > Configuración del proyecto > Tus apps.
 export const FIREBASE_CONFIG = {
-  apiKey: '***REMOVED_API_KEY***',
-  projectId: 'meet-light-juntas'
+  apiKey: 'TU_API_KEY',
+  projectId: 'TU_PROJECT_ID'
 };
 
 // Página de reportes (Firebase Hosting). También es el único origen al que la

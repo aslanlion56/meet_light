@@ -5,3 +5,6 @@ native-host/.node-path
 # Firebase CLI
 .firebase/
 firebase-debug.log
+
+# Configuración local de Firebase (copiar desde firebase-config.example.js)
+chrome-extension/firebase-config.js
